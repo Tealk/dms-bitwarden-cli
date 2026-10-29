@@ -4450,6 +4450,8 @@ function learnedMatchIds(assoc, ctx) {
 //
 // Only tools an Omarchy install can actually lack; the rest (wl-clipboard,
 // libsecret, glib2, systemd, openssl...) ship with it. Probed in one process.
+// wl-clipboard is reported there as a capability, not as a row of its own:
+// see `hasClipboard` in parseDependencies().
 var DEPENDENCIES = [
   {
     key: "bw", label: "Bitwarden CLI", binary: "bw", pkg: "bitwarden-cli", aur: false,
@@ -4500,6 +4502,12 @@ function dependencyCheckCommand(pamDirectory) {
   // machines without a reader are not offered fingerprint unlock.
   parts.push("if command -v fprintd-list >/dev/null 2>&1 && fprintd-list \"$USER\" 2>/dev/null | grep -qi finger; "
     + "then echo fingerprint_hw=1; else echo fingerprint_hw=0; fi")
+  // Not a setup row -- an Omarchy install has it -- but a copy is the only
+  // place its absence would ever show, so the panel asks this instead of
+  // announcing a copy that went nowhere. `wl-paste` too: without it the
+  // sensitive copy could never be cleared again.
+  parts.push("if command -v wl-copy >/dev/null 2>&1 && command -v wl-paste >/dev/null 2>&1; "
+    + "then echo wlcopy=1; else echo wlcopy=0; fi")
   parts.push("if command -v dms >/dev/null 2>&1; then echo omarchy=1; else echo omarchy=0; fi")
   return ["bash", "-c", cappedScript("{ " + parts.join("; ") + "; } | head -c 4096")]
 }
@@ -4583,6 +4591,8 @@ function parseDependencies(raw, probedVersion) {
     items: out,
     hasOmarchy: found["omarchy"] === "1",
     hasFingerprintReader: found["fingerprint_hw"] === "1",
+    // `wl-copy` and `wl-paste`, from dependencyCheckCommand().
+    hasClipboard: found["wlcopy"] === "1",
     bwVersion: bwVersion,
     bwId: dependencyBwId(raw),
     sshCliMinVersion: SSH_CLI_MIN_VERSION,
@@ -4653,6 +4663,14 @@ function vaultListBlockedMessage(deps) {
     return "jq is required to safely read vault items. Finish setup to continue."
   }
   return "Could not determine how to safely read vault items."
+}
+
+// `wl-clipboard` ships with Omarchy, so it is not a setup row (see
+// DEPENDENCIES); the probe reports it as a capability instead. Nothing is
+// decided before the probe has run: a panel that blocked its first copy on its
+// own empty starting state would refuse every copy on launch.
+function clipboardCopyBlocked(deps, checked) {
+  return Boolean(checked) && Boolean(deps) && deps.hasClipboard === false
 }
 
 // SSH UI shows only once the probe confirmed a supporting CLI; an unknown

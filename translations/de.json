@@ -333,6 +333,7 @@
     "Counts from when you last unlocked the vault or copied or saved something from it. SSH signing does not count. Locking ends every SSH approval.": "Zählt ab dem letzten Entsperren des Tresors oder dem letzten Kopieren oder Speichern daraus. SSH-Signaturen zählen nicht. Das Sperren beendet alle SSH-Freigaben.",
     "Clear clipboard after": "Zwischenablage leeren nach",
     "Wipe a copied password or code from the clipboard.": "Kopiertes Passwort oder Code aus der Zwischenablage entfernen.",
+    "wl-copy is missing. Install wl-clipboard to copy.": "wl-copy fehlt. Installiere wl-clipboard, um kopieren zu können.",
     "Lock when the screen locks": "Mit dem Bildschirm sperren",
     "Lock as soon as the screen locks, rather than waiting out the auto-lock.": "Tresor sofort beim Sperren des Bildschirms sperren.",
     "Lock when the machine suspends": "Vor dem Ruhezustand sperren",

@@ -25,8 +25,8 @@ function handlerBody(source, name) {
 const names = ["itemNeedsReprompt", "repromptSatisfied", "withReprompt", "submitReprompt", "cancelReprompt",
   "clearRepromptGrant", "withholdDetailSecrets", "withRevealedDetail", "loadFullDetail", "openDetail",
   "onDetailFinished", "toggleFieldReveal", "setFieldRevealed", "isFieldRevealed", "shownSecret", "revealField",
-  "totpWanted", "helperRow", "readDetailSecret", "copyDetailField", "copyDetailFieldNow", "startEditItem",
-  "copyDetailTotp", "copyTotpCodeNow", "applyTotpCode", "fetchTotp", "localTotp", "saveItemForm"]
+  "totpWanted", "helperRow", "readDetailSecret", "copyDetailField", "clipboardMissing", "copyDetailFieldNow",
+  "startEditItem", "copyDetailTotp", "copyTotpCodeNow", "applyTotpCode", "fetchTotp", "localTotp", "saveItemForm"]
 
 // `items`: the list (rows from Model.parseItems). `fallback`: no helper.
 function makeVault(items, fallback) {
@@ -34,6 +34,8 @@ function makeVault(items, fallback) {
     Model, Totp,
     items, vaultHelperActive: !fallback, status: "unlocked", vaultEpoch: 3, currentScreen: "main",
     session: "HELD-BY-QS-BITWARDEN-VAULT-HELPER-SESSION", clearClipboardSec: 30, generatorReturnScreen: "main",
+    // The dependency probe has run and found a clipboard: copies go through.
+    dependencies: ({ items: [], hasClipboard: true }), depsChecked: true,
     repromptPending: false, repromptItemId: "", repromptItemName: "", repromptError: "", repromptBusy: false,
     repromptCallback: null, repromptEpoch: -1, repromptVerifiedId: "", repromptActionId: "",
     detailItem: null, detailPassword: "", liveTotp: "", revealedFields: {}, errorMessage: "", isLoading: false,

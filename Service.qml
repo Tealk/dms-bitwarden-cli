@@ -383,6 +383,9 @@ Item {
   }
 
   function copyDetailFieldNow(item, key, label) {
+    // The helper copies too, and it reports success on its own; ask before
+    // spending the round trip on a clipboard that is not there.
+    if (clipboardMissing()) return
     var id = String(item.id)
     if (helperRow(id)) {
       var epoch = vaultEpoch
@@ -7993,8 +7996,20 @@ Item {
     process.destroy()
   }
 
+  // `wl-clipboard` is not a setup row, so a missing `wl-copy` is only ever
+  // noticed here. Every copy path asks first, the helper's included: a copy
+  // that cannot land must say so instead of flashing "copied".
+  function clipboardMissing() {
+    if (!Model.clipboardCopyBlocked(dependencies, depsChecked)) return false
+    // The package may have been installed since the last probe: ask again, so
+    // the next copy works without restarting the shell.
+    checkDependencies()
+    errorMessage = Tr.text("wl-copy is missing. Install wl-clipboard to copy.")
+    return true
+  }
+
   function copyToClipboard(text, label) {
-    if (!text) return
+    if (!text || clipboardMissing()) return
     resetAutoLockTimer()
     var env = {}
     env[Model.clipboardEnvVar()] = String(text)
@@ -8062,6 +8077,9 @@ Item {
 
   // Enter's copy, once any re-prompt has passed.
   function smartCopy(item) {
+    // Nothing will be on the clipboard: arming the TOTP follow-up and closing
+    // the panel would leave the user pasting an older copy.
+    if (clipboardMissing()) return
     // Step 1: Copy password
     copyPasswordNow(item)
 
@@ -8092,6 +8110,7 @@ Item {
   function copyPasswordNow(item) {
     closeFilterGroup()
     if (!item || !Model.isLoginItem(item)) return
+    if (clipboardMissing()) return
     learnFromPick(item)
     if (item.secretsHeld && vaultHelperActive) {
       // The helper hands the password to wl-copy; it never comes here.

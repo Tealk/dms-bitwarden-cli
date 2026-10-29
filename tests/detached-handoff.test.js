@@ -47,6 +47,8 @@ ShellRoot {
  function bwEnv() { return {BW_SESSION: session}; }
  function resetAutoLockTimer() {}
  function flashNotification(label) {}
+ property var dependencies: ({ items: [], hasClipboard: true })
+ property bool depsChecked: true
  property bool rememberSession: false
  property bool vaultHelperActive: false
  Component { id: detachedProcessFactory; Process {} }

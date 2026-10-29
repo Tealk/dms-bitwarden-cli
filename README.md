@@ -48,6 +48,8 @@ Translations are shipped in `translations/de.json` and loaded through DMS's plug
 - DankMaterialShell **1.6.0 or newer** and Quickshell.
 - The official Bitwarden CLI (`bw`) and `jq`.
 - `wl-copy` and `wl-paste` from `wl-clipboard` for bounded clipboard operations.
+  The panel reports a copy as failed instead of claiming success when they are
+  missing; setup does not offer the package, because an Omarchy install ships it.
 - Rust/Cargo (`rust` on Arch) to build the vault, unlock-key and SSH helpers with
   `./scripts/build-helpers.sh`.
 - `pinentry-qt` (or another `pinentry`) and `argon2` for quick unlock.

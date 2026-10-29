@@ -223,6 +223,32 @@ check("copies go through the model's copy command, detached, with the value in t
   /detachWithEnvironment\(Model\.clipboardCopyCommand\(clearClipboardSec\), env\)/.test(copyToClipboard)
     && /env\[Model\.clipboardEnvVar\(\)\]\s*=\s*String\(text\)/.test(copyToClipboard),
   copyToClipboard)
+// `wl-clipboard` is an Omarchy base package, so it is not a setup row and
+// nothing else would notice it missing. The dependency probe reports it as a
+// capability, and no copy is announced before that answer.
+check("the dependency probe reports wl-copy and wl-paste",
+  /command -v wl-copy/.test(Model.dependencyCheckCommand()[2])
+    && /command -v wl-paste/.test(Model.dependencyCheckCommand()[2]),
+  Model.dependencyCheckCommand()[2])
+check("the probe answer is parsed into a capability, not a row",
+  Model.parseDependencies("wlcopy=1").hasClipboard === true
+    && Model.parseDependencies("wlcopy=0").hasClipboard === false
+    && Model.DEPENDENCIES.every(d => d.pkg !== "wl-clipboard"),
+  JSON.stringify(Model.DEPENDENCIES.map(d => d.pkg)))
+check("nothing is decided before the probe ran, and a probed miss blocks the copy",
+  Model.clipboardCopyBlocked(Model.parseDependencies("wlcopy=0"), false) === false
+    && Model.clipboardCopyBlocked(Model.parseDependencies("wlcopy=0"), true) === true
+    && Model.clipboardCopyBlocked(Model.parseDependencies("wlcopy=1"), true) === false,
+  "the clipboard guard answered wrongly")
+check("a copy that cannot land is not announced",
+  /clipboardMissing\(\)/.test(copyToClipboard)
+    && copyToClipboard.indexOf("clipboardMissing()") < copyToClipboard.indexOf("detachWithEnvironment"),
+  copyToClipboard)
+check("the helper's copy paths and Enter's TOTP follow-up ask first too",
+  /clipboardMissing\(\)/.test(bodyOf("copyPasswordNow"))
+    && /clipboardMissing\(\)/.test(bodyOf("copyDetailFieldNow"))
+    && /clipboardMissing\(\)/.test(bodyOf("smartCopy")),
+  bodyOf("copyPasswordNow") + bodyOf("copyDetailFieldNow") + bodyOf("smartCopy"))
 // The clear used to be a timer in the shell, lost on every shell restart,
 // and a lock ran `wl-copy --clear` whatever was on the clipboard by then.
 check("no shell-side timer owns the clipboard clear",

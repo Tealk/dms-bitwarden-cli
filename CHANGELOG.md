@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Report a missing `wl-copy`/`wl-paste` (`wl-clipboard`) instead of flashing a
+  success for a copy that never landed. The dependency probe reports the tools
+  as a capability rather than a setup row, so a machine without them is told
+  which package to install the moment it copies.
+
 ## [1.11.6-dms.5] - 2026-10-29
 
 - Merge PR #11: focus search on opening the list, edit directly from row pencils, center the plain caret and restore number-button click targets.
