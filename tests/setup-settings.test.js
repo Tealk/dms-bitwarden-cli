@@ -22,6 +22,12 @@ check("a locked panel focuses whichever field the offered unlock method uses",
   /focusTarget:[\s\S]{0,800}unlockForm\.focusField\s*\?\s*unlockForm\.focusField\s*:\s*keyCatcher/.test(panelSrc),
   "focusTarget must follow UnlockForm.focusField, which is the PIN field when PIN unlock leads")
 
+// Opening on the list must leave the cursor in the search box: typing
+// filters. A keyCatcher target there stole focus back and ran hotkeys.
+check("an unlocked list focuses the search box when the panel opens",
+  /focusTarget:[\s\S]{0,400}currentScreen\s*===\s*"main"\)\s*\?\s*searchField/.test(panelSrc),
+  "focusTarget must be searchField on the unlocked main screen, as focusAppropriateField() is")
+
 // --- everything present -----------------------------------------------------
 const all = Model.parseDependencies(
   "bw=1\nbw_version=2025.1.2\njq=1\nwlcopy=1\nhyprctl=1\nsecrettool=1\nfprintd=1\nfingerprint_ready=1\nomarchy=1")

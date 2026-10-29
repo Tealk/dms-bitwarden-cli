@@ -235,6 +235,15 @@ Item {
     if (item) root.protect(item, function() { root.vault.startEditItem(item) })
   }
 
+  // The row's pencil edits, like the detail screen's Edit; a row click or `e`
+  // opens the item. Through the detail screen, which the form returns to.
+  // shortcut: an item that must come from `bw get item` loads async and stays
+  // on the detail screen; edit straight away once that path can call back.
+  function editListItem(item) {
+    root.vault.openDetail(item)
+    root.editDetailItem()
+  }
+
   // Whether an item carries the flag, for the lock glyph and masking.
   function asksMasterPassword(item) {
     return !!item && Number(item.reprompt) === 1
@@ -586,11 +595,15 @@ Item {
     owner: root
     bar: root.bar
     open: root.opened
-    // The key catcher drives every unlocked screen but the two text-entry
-    // ones, and setup (all buttons) outright. The SSH guard first, until an
-    // SSH request shown here is armed.
+    // The key catcher drives every unlocked screen but the list (typing
+    // searches; Down hands the keys to the catcher) and the text-entry ones,
+    // and setup (all buttons) outright. The SSH guard first, until an SSH
+    // request shown here is armed. KeyboardPanel refocuses this after open,
+    // so it must agree with focusAppropriateField().
     focusTarget: !root.sshKeysArmed ? sshKeyGuard : (root.vault.currentScreen === "setup" || root.vault.currentScreen === "accounts")
       ? keyCatcher
+      : (root.vault.status === "unlocked" && root.vault.currentScreen === "main")
+      ? searchField
       : ((root.vault.status === "unlocked"
           && root.vault.currentScreen !== "edit"
           && root.vault.currentScreen !== "pin"
@@ -3597,21 +3610,14 @@ Item {
                     Row {
                       spacing: Style.space(4)
                       width: parent.width
+                      // Room the username keeps when the place tags are long
+                      // (a hovered row also loses width to its buttons).
+                      readonly property real subtitleFloor: Math.min(rowSubtitle.implicitWidth, Style.space(70))
 
                       Text {
                         textFormat: Text.PlainText
                         visible: Boolean(itemData.isSuggested)
                         text: root.vault.learnedIds[itemData.id] ? Tr.text("󰐾 Suggested") : Tr.text("󰌠 Suggested")
-                        color: DmsColor.accent
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
-                      }
-
-                      Text {
-                        textFormat: Text.PlainText
-                        visible: Boolean(itemData.organizationId)
-                        text: "󰓹 Org"
                         color: DmsColor.accent
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption
@@ -3626,10 +3632,28 @@ Item {
                         font.family: root.fontFamily
                         font.pixelSize: Style.font.caption
                         elide: Text.ElideRight
-                        // Only what it needs, so the folder tag keeps its place.
+                        // Only what it needs, so the place tags keep theirs.
                         width: Math.max(0, Math.min(implicitWidth,
                           parent.width
-                            - (itemData.organizationId ? Style.space(40) : 0)
+                            - (itemData.isSuggested ? Style.space(75) : 0)
+                            - (rowOrgTag.visible ? rowOrgTag.width + Style.space(4) : 0)
+                            - (rowFolderTag.visible ? Style.space(90) : 0)))
+                      }
+
+                      // An org item's organization and collections; the
+                      // detail screen lists every collection.
+                      Text {
+                        id: rowOrgTag
+                        textFormat: Text.PlainText
+                        visible: Boolean(itemData.organizationId)
+                        text: (Model.collectionNames(root.vault.collections, itemData.collectionIds).length ? "· \u{F0253} " : "· 󰓹 ")
+                          + (Model.orgPlaceLabel(itemData, root.vault.organizations, root.vault.collections) || Tr.text("Organization"))
+                        color: DmsColor.accent
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        elide: Text.ElideRight
+                        width: Math.max(0, Math.min(implicitWidth, Style.space(200),
+                          parent.width - parent.subtitleFloor - Style.space(8)
                             - (itemData.isSuggested ? Style.space(75) : 0)
                             - (rowFolderTag.visible ? Style.space(90) : 0)))
                       }
@@ -3691,9 +3715,9 @@ Item {
                       size: Style.space(28)
                       fontSize: Style.font.body
                       iconText: "󰏫"
-                      tooltipText: itemData.typeCode === 5 ? Tr.text("View public key") : Tr.text("View / Edit item (e)")
+                      tooltipText: itemData.typeCode === 5 ? Tr.text("View public key") : Tr.text("Edit item")
                       fontFamily: root.fontFamily
-                      onClicked: root.vault.openDetail(itemData)
+                      onClicked: itemData.typeCode === 5 ? root.vault.openDetail(itemData) : root.editListItem(itemData)
                     }
 
                     PanelActionButton {
@@ -4128,7 +4152,8 @@ Item {
                     }
                   }
 
-                  Row {
+                  Flow {
+                    width: parent.width
                     spacing: Style.space(6)
                     Text {
                       textFormat: Text.PlainText
@@ -4140,10 +4165,27 @@ Item {
                     Text {
                       textFormat: Text.PlainText
                       visible: Boolean(root.vault.detailItem && root.vault.detailItem.organizationId)
-                      text: Tr.text("• Shared Organization")
+                      text: root.vault.detailItem
+                        ? "• 󰓹 " + (Model.nameById(root.vault.organizations, root.vault.detailItem.organizationId)
+                          || Tr.text("Shared Organization"))
+                        : ""
                       color: DmsColor.accent
                       font.family: root.fontFamily
                       font.pixelSize: Style.font.caption
+                      elide: Text.ElideRight
+                      width: Math.min(implicitWidth, parent.width)
+                    }
+                    Text {
+                      textFormat: Text.PlainText
+                      readonly property var names: root.vault.detailItem
+                        ? Model.collectionNames(root.vault.collections, root.vault.detailItem.collectionIds) : []
+                      visible: names.length > 0
+                      text: "• \u{F0253} " + names.join(", ")
+                      color: DmsColor.accent
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      wrapMode: Text.Wrap
+                      width: Math.min(implicitWidth, parent.width)
                     }
                     Text {
                       textFormat: Text.PlainText

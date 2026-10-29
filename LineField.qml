@@ -542,11 +542,20 @@ FocusScope {
     Accessible.passwordEdit: root.password
 
     // Qt owns this item's visibility and geometry, so a masked field hides it
-    // with opacity and draws maskedCaret instead.
-    cursorDelegate: Rectangle {
+    // with opacity and draws maskedCaret instead. The bar is centred from the
+    // editor's box like maskedCaret: Qt places the delegate at cursorRectangle,
+    // whose y lags a field that was just shown (the search box on open).
+    cursorDelegate: Item {
+      id: caretSlot
       width: 1
-      color: root.foreground
       opacity: root.password ? 0 : 1
+      Rectangle {
+        objectName: "caretBar"
+        width: 1
+        height: caretSlot.height > 0 ? caretSlot.height : editor.font.pixelSize
+        y: editor.topPadding + Math.max(0, (editor.height - editor.topPadding - editor.bottomPadding - height) / 2) - caretSlot.y
+        color: root.foreground
+      }
     }
 
     // The field's own caret for a masked value: same look as the delegate.

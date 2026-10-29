@@ -56,6 +56,12 @@ check("listOrgCollectionsCommand caps collections output to 2MB",
   flat(orgColsCmd).includes("bw list org-collections --organizationid org-99") && flat(orgColsCmd).includes("head -c 2097152"),
   flat(orgColsCmd))
 
+// 6b. The account's collections stream is capped
+const allColsCmd = Model.listCollectionsCommand()
+check("listCollectionsCommand caps collections output to 2MB",
+  flat(allColsCmd).includes("bw list collections") && flat(allColsCmd).includes("head -c 2097152"),
+  flat(allColsCmd))
+
 // 7. Status and unlock streams are capped
 const statusCmd = Model.statusCommand()
 check("statusCommand caps status json output to 64KB",

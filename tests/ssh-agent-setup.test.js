@@ -127,6 +127,30 @@ for (const [label, deps, checked] of [
     JSON.stringify(headers.map(e => e.group)))
 }
 
+// A timer row is hidden while nothing uses it: the agent is off, or the
+// until-lock grant replaces the time window. The status block moves to the
+// group's new last row.
+const valuesOf = values => key => values[key]
+for (const [label, values, shown] of [
+  ["agent on, timed grants", { sshAgentEnabled: true, sshAgentApprovalUntilScreenLock: false }, true],
+  ["agent on, until screen lock", { sshAgentEnabled: true, sshAgentApprovalUntilScreenLock: true }, false],
+  ["agent off", { sshAgentEnabled: false, sshAgentApprovalUntilScreenLock: false }, false]
+]) {
+  const rows = Model.visibleSettings(supportedDeps, true, valuesOf(values))
+  eq(`${label}: the approval window row is ${shown ? "shown" : "hidden"}`,
+    rows.some(e => e.key === "sshAgentApprovalWindowSec"), shown)
+  eq(`${label}: every other setting stays`,
+    rows.filter(e => e.kind === "setting" && e.key !== "sshAgentApprovalWindowSec").length,
+    Model.SETTINGS_SCHEMA.length - 1)
+  eq(`${label}: the SSH group still has one last row`,
+    rows.filter(e => e.group === "sshAgent" && e.lastInGroup).length, 1)
+}
+
+check("the settings screen reads live values to hide rows",
+  /settingsEntries: Model\.visibleSettings\(dependencies, depsChecked,\s*function\(key\) \{ return root\.settingValue\(Model\.settingSchemaEntry\(key\)\) \}\)/
+    .test(readPluginSource("Service.qml")),
+  "Service.qml must pass settingValue to visibleSettings, or shownWhen never applies")
+
 check("hiding the group does not mutate the schema",
   Model.SETTINGS_SCHEMA.every(e => e.groupLabel === undefined && e.kind === undefined),
   "schema was mutated")

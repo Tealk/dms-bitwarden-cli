@@ -129,8 +129,10 @@ Column {
     readonly property bool _hot: root._hovered || root.hasCursor
     readonly property var _borderSpec: Border.controlSpec(_focused ? "focus" : (_hot ? "hover-cursor" : "normal"), root.foreground, root.accent)
 
-    leftPadding: Border.left(_borderSpec) + Style.spacing.controlPaddingX
-    rightPadding: Border.right(_borderSpec) + Style.spacing.controlPaddingX
+    // Clear of the -/+ buttons: the editor takes clicks, and over a button it
+    // swallowed every press but the outer edge's.
+    leftPadding: Border.left(_borderSpec) + (down.indicator ? down.indicator.width : Style.spacing.controlPaddingX)
+    rightPadding: Border.right(_borderSpec) + (up.indicator ? up.indicator.width : Style.spacing.controlPaddingX)
     topPadding: Border.top(_borderSpec)
     bottomPadding: Border.bottom(_borderSpec)
 

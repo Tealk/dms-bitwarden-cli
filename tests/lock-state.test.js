@@ -202,6 +202,7 @@ for (const [name, starter, handler] of [
   ["items",         "loadItems",          "onListFinished"],
   ["organizations", "loadOrganizations",  "onListOrgsFinished"],
   ["folders",       "loadFolders",        "onListFoldersFinished"],
+  ["allCollections", "loadCollections",   "onListCollectionsFinished"],
   ["collections",   "loadOrgCollections", "onOrgCollectionsLoaded"],
   ["detail",        "openDetail",         "onDetailFinished"],
   ["totp",          "startTotpFetch",     "onTotpFinished"],
@@ -355,7 +356,7 @@ check("unreadable, locked, and logged-out status results purge local vault state
   bodyOf("onStatusFinished"))
 for (const [prop, empty] of [
   ["session", '""'], ["items", "[]"], ["filteredItems", "[]"],
-  ["organizations", "[]"], ["folders", "[]"], ["detailItem", "null"],
+  ["organizations", "[]"], ["folders", "[]"], ["collections", "[]"], ["detailItem", "null"],
   ["formCollections", "[]"], ["formCollectionIds", "[]"],
   ["formUsername", '""'], ["formUri", '""'],
   ["formNotes", '""'],

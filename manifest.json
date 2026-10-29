@@ -44,8 +44,8 @@
       {
         "key": "autoLockMinutes",
         "type": "integer",
-        "label": "Auto-lock timeout (minutes)",
-        "description": "Lock vault automatically after minutes of inactivity (0 to disable)",
+        "label": "Lock the vault after (minutes)",
+        "description": "Lock the vault this many minutes after you last unlocked it or copied or saved something from it (0 to disable). SSH signing does not count. Locking ends every SSH approval.",
         "min": 0,
         "max": 1440,
         "step": 5,
@@ -166,7 +166,7 @@
         "key": "sshAgentApprovalUntilScreenLock",
         "type": "boolean",
         "label": "Approve until the screen locks",
-        "description": "Replace the time window with a grant that ends on screen lock, vault lock, logout or revoke. Screen lock always revokes grants. Suspend revokes them through vault lock only if locking on suspend is enabled.",
+        "description": "An approval lasts until the screen locks, not for a set time, even if the vault stays unlocked. It ends sooner if the vault locks (auto-lock included), you log out or you revoke it. Suspend also ends it if \"Lock when the machine suspends\" is on.",
         "defaultValue": false
       },
       {

@@ -1233,6 +1233,7 @@ var SANITIZED_ITEMS_FILTER = JQ_ITEM_HELPERS.concat([
   "      name: (.name | string_or_empty),",
   "      type: 5,",
   "      organizationId: (.organizationId | string_or_null),",
+  "      collectionIds: (if (.collectionIds | type) == \"array\" then [.collectionIds[] | strings] else [] end),",
   "      folderId: (.folderId | string_or_null),",
   "      favorite: (.favorite | bool_or_false),",
   "      reprompt: (.reprompt | reprompt_or_zero),",
@@ -1391,6 +1392,12 @@ function listFoldersCommand() {
   return buildCappedCommand(["list", "folders"], MAX_FOLDERS_BYTES)
 }
 
+// Every collection this account can see, across its organizations, for
+// naming the ones an item is in. Read from the local sync like the folders.
+function listCollectionsCommand() {
+  return buildCappedCommand(["list", "collections"], MAX_COLLECTIONS_BYTES)
+}
+
 // Org-owned items go in collections (at least one is required), not folders.
 function listOrgCollectionsCommand(organizationId) {
   return buildCappedCommand(["list", "org-collections", "--organizationid", String(organizationId)], MAX_COLLECTIONS_BYTES)
@@ -1437,6 +1444,34 @@ function parseCollections(raw) {
   }
   out.sort(compareNames)
   return out
+}
+
+// The names of the collections an item is in, sorted; unknown ids are skipped.
+function collectionNames(collections, ids) {
+  var out = []
+  var list = toList(ids)
+  for (var i = 0; i < list.length; i++) {
+    var name = nameById(collections, String(list[i]))
+    if (name) out.push(name)
+  }
+  return out.sort(function(a, b) { return a.localeCompare(b, undefined, { sensitivity: "base" }) })
+}
+
+// Where an org item lives, for its list row: "Org / Collection +2". The
+// organization is left out when it is the account's only one (the row is
+// short on room), and until the organizations load. Empty for a personal item.
+function orgPlaceLabel(item, organizations, collections) {
+  if (!item || !item.organizationId) return ""
+  var org = nameById(organizations, item.organizationId)
+  var names = collectionNames(collections, item.collectionIds)
+  if (names.length === 0) return org
+  var place = names[0] + (names.length > 1 ? " +" + (names.length - 1) : "")
+  return org && organizations.length > 1 ? org + " / " + place : place
+}
+
+// toList(): a row read back from QML holds an array-like, not an Array.
+function idList(ids) {
+  return toList(ids).map(String)
 }
 
 var FOLDER_ENV = "QSBW_FOLDER"
@@ -3028,6 +3063,7 @@ function parseItems(raw) {
     out.push({
       id: String(it.id || ""),
       organizationId: it.organizationId ? String(it.organizationId) : null,
+      collectionIds: idList(it.collectionIds),
       folderId: it.folderId ? String(it.folderId) : null,
       name: String(it.name || "Untitled"),
       type: itemTypeName(it.type),
@@ -3082,11 +3118,12 @@ function parseSshKeys(keys) {
     var raw = {
       id: String(it.id), name: String(it.name || "Untitled"), type: 5,
       organizationId: it.organizationId ? String(it.organizationId) : null,
+      collectionIds: idList(it.collectionIds),
       folderId: it.folderId ? String(it.folderId) : null,
       favorite: Boolean(it.favorite), reprompt: repromptValue(it.reprompt),
       sshKey: { publicKey: publicKey, fingerprint: fingerprint }
     }
-    out.push({ id: String(it.id), organizationId: raw.organizationId, folderId: raw.folderId,
+    out.push({ id: String(it.id), organizationId: raw.organizationId, collectionIds: raw.collectionIds, folderId: raw.folderId,
       name: raw.name, type: "sshKey", typeCode: 5, favorite: raw.favorite,
       username: "", password: "", hasPassword: false, hasTotp: false, totpKey: "",
       uris: [], reprompt: raw.reprompt, attachments: [], hasAttachments: false,
@@ -3212,6 +3249,7 @@ function itemDetailFromObject(it) {
   if (Number(it.type) === 5) {
     var sshKey = it.sshKey || {}
     return { id: String(it.id || ""), organizationId: it.organizationId ? String(it.organizationId) : null,
+      collectionIds: idList(it.collectionIds),
       folderId: it.folderId ? String(it.folderId) : null, name: String(it.name || "Untitled"),
       type: "sshKey", typeCode: 5, favorite: Boolean(it.favorite), notes: "",
       username: "", password: "", hasPassword: false, hasTotp: false, totpKey: "", uris: [],
@@ -3228,6 +3266,7 @@ function itemDetailFromObject(it) {
   return {
     id: String(it.id || ""),
     organizationId: it.organizationId ? String(it.organizationId) : null,
+    collectionIds: idList(it.collectionIds),
     folderId: it.folderId ? String(it.folderId) : null,
     name: String(it.name || "Untitled"),
     type: itemTypeName(it.type),
@@ -3293,6 +3332,7 @@ function publicItemDetail(src) {
   return {
     id: String(src.id || ""),
     organizationId: src.organizationId ? String(src.organizationId) : null,
+    collectionIds: idList(src.collectionIds),
     folderId: src.folderId ? String(src.folderId) : null,
     name: String(src.name || "Untitled"),
     type: src.type,
@@ -6442,9 +6482,9 @@ var SETTINGS_GROUPS = [
 ]
 
 var SETTINGS_SCHEMA = [
-  { key: "autoLockMinutes", group: "security", type: "int", label: "Auto-lock after", unit: "minutes",
+  { key: "autoLockMinutes", group: "security", type: "int", label: "Lock the vault after", unit: "minutes",
     min: 0, max: 1440, step: 5, zeroLabel: "Never", defaultValue: 15,
-    description: "Lock the vault after this long without activity." },
+    description: "Counts from when you last unlocked the vault or copied or saved something from it. SSH signing does not count. Locking ends every SSH approval." },
   { key: "clearClipboardSec", group: "security", type: "int", label: "Clear clipboard after", unit: "seconds",
     min: 0, max: 300, step: 5, zeroLabel: "Never", defaultValue: 30,
     description: "Wipe a copied password or code from the clipboard." },
@@ -6473,9 +6513,11 @@ var SETTINGS_SCHEMA = [
   { key: "sshAgentApprovalPopup", group: "sshAgent", type: "bool", label: "Use centered approval popup", defaultValue: true,
     description: "Show SSH unlock and signing requests in a transient card in the middle of the screen instead of opening the anchored panel. Disable to show them in the panel." },
   { key: "sshAgentApprovalUntilScreenLock", group: "sshAgent", type: "bool", label: "Approve until the screen locks", defaultValue: false,
-    description: "Replace the time window with a grant that ends on screen lock, vault lock, logout or revoke. Screen lock always revokes grants. Suspend revokes them through vault lock only if locking on suspend is enabled." },
+    description: "An approval lasts until the screen locks, not for a set time, even if the vault stays unlocked. It ends sooner if the vault locks (auto-lock included), you log out or you revoke it. Suspend also ends it if \"Lock when the machine suspends\" is on." },
   { key: "sshAgentApprovalWindowSec", group: "sshAgent", type: "int", label: "Approve for this long", unit: "seconds",
     min: 0, max: SSH_AGENT_APPROVAL_WINDOW_MAX_SEC, step: 30, zeroLabel: "Always ask", defaultValue: 120,
+    // Unused with the agent off, and the until-lock grant replaces it.
+    shownWhen: function(value) { return value("sshAgentEnabled") && !value("sshAgentApprovalUntilScreenLock") },
     description: "How long one approval covers further signatures from the same process. Grants live only in the helper's memory and never survive a restart." },
 
   { key: "closeOnCopy", group: "general", type: "bool", label: "Close panel on copy", defaultValue: true,
@@ -6509,12 +6551,15 @@ function groupedSettings() {
 }
 
 // The rows the settings screen draws: a heading row per group, then its
-// settings. SSH agent rows only when the CLI supports SSH keys. Headings are
-// rows of their own because the panel reads section positions off this list.
-function visibleSettings(deps, checked) {
+// settings. SSH agent rows only when the CLI supports SSH keys, and a setting
+// with `shownWhen` only while the other settings make it do something
+// (`value(key)` reads one). Headings are rows of their own because the panel
+// reads section positions off this list.
+function visibleSettings(deps, checked, value) {
   var showSsh = sshUiAvailable(deps, checked)
   var rows = groupedSettings().filter(function(entry) {
-    return showSsh || entry.group !== "sshAgent"
+    if (!showSsh && entry.group === "sshAgent") return false
+    return !entry.shownWhen || typeof value !== "function" || entry.shownWhen(value)
   })
 
   var out = []

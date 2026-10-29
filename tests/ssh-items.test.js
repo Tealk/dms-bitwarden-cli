@@ -30,7 +30,7 @@ const fixture = [
   { object: "item", id: "card-1", type: 3, name: "Card", card: { number: "4111111111111111" } },
   { object: "item", id: "identity-1", type: 4, name: "Identity", identity: { email: "me@example.com" } },
   { object: "item", id: "ssh-1", type: 5, name: "Work SSH", organizationId: "org-1",
-    folderId: "folder-1", favorite: false, reprompt: 1, notes: "not public",
+    collectionIds: ["col-1", 7, { id: "col-2" }], folderId: "folder-1", favorite: false, reprompt: 1, notes: "not public",
     sshKey: { privateKey: PRIVATE_MARKER, publicKey: "ssh-ed25519 AAAATEST",
       fingerprint: "SHA256:public-fingerprint", extra: "not public either" } },
   { object: "item", id: "bank-1", type: 6, name: "Bank",
@@ -135,7 +135,7 @@ try {
   check("only type 5 receives a public projection",
     parsed && JSON.stringify(parsed.sshKeys) === JSON.stringify([{
       id: "ssh-1", name: "Work SSH", type: 5, organizationId: "org-1",
-      folderId: "folder-1", favorite: false, reprompt: 1,
+      collectionIds: ["col-1"], folderId: "folder-1", favorite: false, reprompt: 1,
       publicKey: "ssh-ed25519 AAAATEST", fingerprint: "SHA256:public-fingerprint"
     }]), parsed ? JSON.stringify(parsed.sshKeys) : "no parsed output")
   check("seeing a type-5 item confirms SSH capability in the sanitized envelope",
@@ -153,7 +153,7 @@ try {
       && keyFingerprintParsed
       && JSON.stringify(keyFingerprintParsed.sshKeys) === JSON.stringify([{
         id: "ssh-keyfp", name: "CLI SSH", type: 5, organizationId: null,
-        folderId: null, favorite: false, reprompt: 0,
+        collectionIds: [], folderId: null, favorite: false, reprompt: 0,
         publicKey: "ssh-rsa AAAATEST2", fingerprint: "SHA256:key-fingerprint"
       }])
       && !keyFingerprint.stdout.includes(PRIVATE_MARKER),

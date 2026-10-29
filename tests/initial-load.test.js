@@ -21,7 +21,8 @@ check("initial loading starts the item list, then the metadata",
 const pendingMeta = bodyOf("loadPendingMetadata")
 check("metadata starts only for a confirmed session",
   /if\s*\(status\s*!==\s*"unlocked"\s*\|\|\s*!metadataLoadPending\)\s*return/.test(pendingMeta)
-    && /loadOrganizations\(force\)/.test(pendingMeta) && /loadFolders\(force\)/.test(pendingMeta),
+    && /loadOrganizations\(force\)/.test(pendingMeta) && /loadFolders\(force\)/.test(pendingMeta)
+    && /loadCollections\(force\)/.test(pendingMeta),
   pendingMeta)
 
 const keyring = bodyOf("onKeyringLookupFinished")
@@ -114,7 +115,7 @@ const processBlock = id => {
   const next = panelSrc.indexOf("\n  Process {", idAt)
   return panelSrc.slice(idAt, next === -1 ? panelSrc.length : next)
 }
-for (const id of ["statusProc", "sessionHandoffProc", "listOrgsProc", "listFoldersProc",
+for (const id of ["statusProc", "sessionHandoffProc", "listOrgsProc", "listFoldersProc", "listCollectionsProc",
                   "orgCollectionsProc", "listSendsProc", "keyringLookupMasterProc",
                   "getItemProc", "getTotpProc"]) {
   const block = processBlock(id)

@@ -167,6 +167,18 @@ TestCase {
     compare(signedMods.signalArguments[1][0], 20)
   }
 
+  // The editor sat over the buttons and took every click but the outer edge's.
+  function test_buttons_step_when_clicked_on_their_glyph() {
+    var spin = num.field
+    var up = spin.up.indicator
+    mouseClick(up, up.width / 2, up.height / 2)
+    compare(store.value, 6)
+    var down = spin.down.indicator
+    for (var i = 0; i < 6; ++i) mouseClick(down, down.width / 2, down.height / 2)
+    compare(store.value, 0)
+    compare(edit(num).text, "0")
+  }
+
   function test_never_instantiates_an_editable_text_input() {
     verify(!(edit(num) instanceof Object && edit(num).hasOwnProperty("echoMode")))
     verify(edit(num).hasOwnProperty("cursorPosition"))

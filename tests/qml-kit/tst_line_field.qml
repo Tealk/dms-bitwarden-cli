@@ -303,6 +303,28 @@ TestCase {
     field.destroy()
   }
 
+  // The plain caret is centred the same way. Qt moves its delegate to
+  // cursorRectangle; a stale y (the search box on open) is simulated here.
+  function test_plain_caret_is_centred_when_qt_places_it_high() {
+    var field = Qt.createQmlObject('import QtQuick; import "../.."; LineField { width: 300; visible: false }', tc)
+    field.text = "abc"
+    field.visible = true
+    field.height = 64
+    field.forceActiveFocus()
+    var ed = editorOf(field)
+    var bar = null
+    tryVerify(function() {
+      for (var i = 0; i < ed.children.length && !bar; ++i)
+        for (var j = 0; j < ed.children[i].children.length; ++j)
+          if (ed.children[i].children[j].objectName === "caretBar") bar = ed.children[i].children[j]
+      return bar !== null
+    }, 500, "no plain caret")
+    bar.parent.y = 0
+    var boxMid = ed.topPadding + (ed.height - ed.topPadding - ed.bottomPadding) / 2
+    fuzzyCompare(bar.mapToItem(ed, 0, bar.height / 2).y, boxMid, 1, "caret is not vertically centred")
+    field.destroy()
+  }
+
   function test_only_one_caret_after_toggling_password() {
     secret.text = "ab"
     secret.forceActiveFocus()
