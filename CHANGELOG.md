@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.6-dms.5] - 2026-10-29
+
+- Merge PR #11: focus search on opening the list, edit directly from row pencils, center the plain caret and restore number-button click targets.
+- Hide ineffective SSH approval duration settings and clarify vault auto-lock behavior.
+- Show organization and collection names on rows and details; clear collection metadata on lock.
+- Fix targeted QML test invocation and detect both dms-shell and danklinux-shell runtime directories.
+
 ## [1.11.6-dms.4] - 2026-10-24
 
 - Merge PRs #7–#10: center Material input hints, stop hidden spinners, stabilize sticky settings headings and clarify when DMS must restart.

@@ -14,7 +14,15 @@ parser.add_argument('--check-layout', action='store_true', help='Check rendered 
 parser.add_argument('--panel-width', type=int, choices=(450, 520), default=520)
 parser.add_argument('--dms-dir', type=Path, help='Installed DMS shell directory providing native widgets')
 parser.add_argument('--output', type=Path, default=repo/'docs/screenshots/dms-vault-preview.png')
+parser.add_argument('test_path', nargs='?', help='Optional tests/qml-kit QML file or directory')
 args=parser.parse_args()
+test_relative=Path('tests/qml-kit')
+if args.test_path:
+ if not args.test_ui: parser.error('test_path requires --test-ui')
+ selected=(repo/args.test_path).resolve()
+ if not selected.is_relative_to(repo/'tests/qml-kit') or not selected.exists():
+  parser.error('test_path must exist inside tests/qml-kit')
+ test_relative=selected.relative_to(repo)
 output=args.output.resolve()
 output.parent.mkdir(parents=True, exist_ok=True)
 workspace=tempfile.TemporaryDirectory(prefix='dms-bitwarden-preview-')
@@ -26,7 +34,8 @@ shutil.copytree(repo/'DmsUi',tmp/'DmsUi',dirs_exist_ok=True)
 # Load the actual installed native controls; never start host services.
 dms=args.dms_dir
 if dms is None:
- candidates=sorted(Path('/run/user/'+str(os.getuid())+'/danklinux-shell').glob('*/Common'),key=lambda p:p.stat().st_mtime,reverse=True)
+ runtime=Path(os.environ.get('XDG_RUNTIME_DIR', '/run/user/'+str(os.getuid())))
+ candidates=sorted((p for name in ('dms-shell','danklinux-shell') for p in (runtime/name).glob('*/Common')),key=lambda p:p.stat().st_mtime,reverse=True)
  if not candidates: raise SystemExit('Pass --dms-dir pointing to the installed DMS shell directory')
  dms=candidates[0].parent
 common_name = 'DCommon' if (dms/'DCommon').is_dir() else 'DankCommon'
@@ -237,7 +246,7 @@ if args.check_controls or args.test_ui:
  # Inert process objects let QtTest exercise asynchronous paste cancellation.
  subprocess.run(['node',str(repo/'tests/qml-kit/kit-imports.js'),str(dms),str(tmp)],check=True)
  runner=shutil.which('qmltestrunner') or '/usr/lib/qt6/bin/qmltestrunner'
- checks=subprocess.run([runner,'-import',str(tmp),'-input',str(tmp/'tests/qml-kit' if args.test_ui else tmp/'tst_controls.qml'),'-o','-,txt'],env=env,capture_output=True,text=True,timeout=20)
+ checks=subprocess.run([runner,'-import',str(tmp),'-input',str(tmp/test_relative if args.test_ui else tmp/'tst_controls.qml'),'-o','-,txt'],env=env,capture_output=True,text=True,timeout=20)
  if checks.returncode or 'FAIL!' in checks.stdout+checks.stderr:
   raise SystemExit(checks.stdout+checks.stderr)
  print(checks.stdout)
